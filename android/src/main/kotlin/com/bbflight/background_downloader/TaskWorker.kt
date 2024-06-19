@@ -488,6 +488,27 @@ open class TaskWorker(
                 for (header in task.headers) {
                     setRequestProperty(header.key, header.value)
                 }
+                if(responseCode == 302){
+                    // redirection logic
+                    val redirUrlString = headerFields["Location"]?.first()
+                    val redirUrl = URL(redirUrlString)
+                    Log.i(
+                        TAG,
+                        "Response code: ${this.responseCode} \n URL Rediction \n Url string(location): ${redirUrlString} Inside doTask() -- TaskWorker.kt"
+                    )
+
+                    with(withContext(Dispatchers.IO) {
+                        redirUrl.openConnection(proxy ?: Proxy.NO_PROXY)
+                    } as HttpURLConnection){
+                        requestMethod = task.httpRequestMethod
+                        connectTimeout = requestTimeoutSeconds * 1000
+                        Log.i(
+                            TAG,
+                            "Response code: ${this.responseCode} Inside doTask() -- TaskWorker.kt"
+                        )
+                        return connectAndProcess(this)
+                    }
+                }
                 return connectAndProcess(this)
             }
         } catch (e: Exception) {
